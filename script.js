@@ -1,6 +1,13 @@
 const themeToggle = document.querySelector(".theme-toggle");
 const promptInput = document.querySelector(".prompt-input");
+const promptForm = document.querySelector(".prompt-form");
 const promptBtn = document.querySelector(".prompt-btn");
+const modelSelect = document.getElementById("model-select");
+const countSelect = document.getElementById("count-select");
+const ratioSelect = document.getElementById("ratio-select");
+const gridGallery = document.querySelector(".gallery-grid");
+
+const API_KEY = "REDACTED_TOKEN";   //higgingface website API key
 
 const examplePrompts = [
     "A magic forest with glowing plants and fairy homes among giant mushrooms",
@@ -38,6 +45,84 @@ const toggleTheme = () => {
     themeToggle.querySelector("i").className = isDarkTheme ? "fa-solid fa-sun" : "fa-solid fa-moon";
 }
 
+
+//calculate image dimensions based on aspect ratio
+const getImageDimensions = (aspectRatio, baseSize = 512) => {
+    const [width, height] = aspectRatio.split("/").map(Number);
+    const scaleFactor = baseSize / Math.sqrt(width * height);
+
+    let calculatedWidth = Math.round(width * scaleFactor);
+    let calculatedHeight = Math.round(height * scaleFactor);
+
+    // Ensure dimensions are multiples of 16
+    calculatedWidth = Math.round(calculatedWidth / 16) * 16;
+    calculatedHeight = Math.round(calculatedHeight / 16) * 16;
+
+    return { width: calculatedWidth, height: calculatedHeight };
+};
+
+const generateImages = async (selectedModel, imageCount, aspectRatio, promptText) => {
+    const MODEL_URL = `https://api-inference.huggingface.co/models/${selectedModel}`;
+    getImageDimensions(aspectRatio);
+
+    try{
+        const response = await fetch(MODEL_URL, {
+            headers: {
+                Authorization: `Bearer ${API_KEY}`,
+                "Content-Type": "application/json",
+                "x-use-cache": "false",
+            },
+            method: "POST",
+            body: JSON.stringify({
+                inputs: promptText,
+                parameters: {
+                    width, height
+                },
+                options: {
+                    wait_for_model: true,
+                    user_cache: false
+                },
+            }),
+        });
+
+        const result = await response.blob();
+    }catch(err){
+        console.log(error);
+    }
+}
+
+
+//creating placeholder cards with loading spinners
+const createImageCards = (selectedModel, imageCount, aspectRatio, promptText) => {
+    gridGallery.innerHTML = "";
+
+    for(let i = 0; i<imageCount; i++){
+        gridGallery.innerHTML += `<div class="img-card loading" id="img-card-${i}" style="aspect-ratio: ${aspectRatio}">
+                        <div class="status-container">
+                            <div class="spinner"></div> 
+                             <i class="fa-solid fa-triangle-exclamation"></i>
+                            <p class="status-text">Generating...</p>
+                        </div>
+                        <img src="./images/test.png" class="result-img">
+                    </div>`;
+    }
+
+    generateImages(selectedModel, imageCount, aspectRatio, promptText);
+};
+
+//handle form submission
+const handleFormSubmit = (e) => {
+    e.preventDefault();
+
+    //get form values
+    const selectedModel = modelSelect.value;
+    const imageCount = parseInt(countSelect.value) || 1;
+    const aspectRatio = ratioSelect.value || "1/1";
+    const promptText = promptInput.value.trim();
+
+    createImageCards(selectedModel, imageCount, aspectRatio, promptText);
+};
+
 //Fill prompt input with a random example prompt
 promptBtn.addEventListener("click", () => {
     console.log("Prompt button clicked");
@@ -46,4 +131,6 @@ promptBtn.addEventListener("click", () => {
     promptInput.focus();
 });
 
+
+promptForm.addEventListener("submit", handleFormSubmit);
 themeToggle.addEventListener("click", toggleTheme);
