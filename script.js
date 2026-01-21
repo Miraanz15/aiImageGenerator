@@ -9,7 +9,7 @@ const gridGallery = document.querySelector(".gallery-grid");
 
 const API_KEY = process.env.API_KEY;
 
-// const API_KEY = "REDACTED_TOKEN";   //huggingface website API key
+
 
 const examplePrompts = [
     "A magic forest with glowing plants and fairy homes among giant mushrooms",
